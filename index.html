@@ -216,6 +216,8 @@ input[type=range]{width:100%;accent-color:var(--gold)}
 .extra{display:flex;flex-direction:column;gap:2px;text-align:center;border:2px dashed var(--gold);background:color-mix(in srgb,var(--gold) 14%,var(--felt-2));border-radius:18px;padding:12px 14px}
 .extra b{color:var(--gold);font-size:1.2rem;font-weight:900}
 .extra span{font-weight:600}
+#abForSeg button{display:flex;flex-direction:column;align-items:center;line-height:1.2;gap:2px}
+#abForSeg small{font-size:.75rem;font-weight:700;opacity:.8}
 /* ===== per-theme layout ===== */
 :root[data-skin] body{background-image:none}
 :root[data-skin] .panel,:root[data-skin] .dealer,:root[data-skin] .tile,:root[data-skin] .ritem,:root[data-skin] .gitem,:root[data-skin] .team{background:color-mix(in srgb,var(--felt-2) 74%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
@@ -336,13 +338,18 @@ input[type=range]{width:100%;accent-color:var(--gold)}
     </div>
 
     <div class="block" id="abBlock">
-      <label class="lbl" for="ab">أكلات المشتري</label>
+      <span class="lbl">أكلات مين بدك تسجّل؟</span>
+      <div class="seg" id="abForSeg">
+        <button id="abForOpp" data-t="B" aria-pressed="true"></button>
+        <button id="abForBuyer" data-t="A" aria-pressed="false"></button>
+      </div>
+      <label class="lbl" for="ab" id="abLbl">الأكلات</label>
       <div class="ab">
         <button class="pm" id="abPlus" aria-label="زيد">+</button>
         <input id="ab" type="number" min="0" max="162" value="90" inputmode="numeric">
         <button class="pm" id="abMinus" aria-label="نقص">−</button>
       </div>
-      <input id="abRange" type="range" min="0" max="162" value="90" aria-label="أكلات المشتري" dir="ltr">
+      <input id="abRange" type="range" min="0" max="162" value="90" aria-label="الأكلات" dir="ltr">
       <div class="split"><span id="splitBuyer"></span><span id="splitOpp"></span></div>
     </div>
 
@@ -434,7 +441,7 @@ function scoreRound(r){
   const pA=projSum(r.proj.A), pB=projSum(r.proj.B);
   if(r.kaboot){
     const w=r.kabTeam, l=w==='A'?'B':'A', res={};
-    res[w]=25+(w==='A'?pA:pB)/10; res[l]=1;
+    res[w]=25+(pA+pB)/10; res[l]=1; // kaboot team gets 25 + all projects
     return {A:res.A,B:res.B,status:'kab'};
   }
   const buyer=r.buyer, opp=buyer==='A'?'B':'A';
@@ -456,6 +463,8 @@ const SEATS=['تحت','يمين','فوق','يسار']; // dealing goes تحت �
 const seatTeam=i=>i%2===0?'A':'B';
 let S={rounds:[],players:['','','',''],firstDealer:0,started:false,start:null,end:null,history:[]};
 let cur={buyer:'A',ab:90,kaboot:false,kabTeam:'A',proj:emptyProj()};
+// which team's cards we type in: 'opp' (non-buyer, fewer cards) or 'buyer'
+let abFor='opp', entryVal=72;
 let view='game';
 try{const s=JSON.parse(localStorage.getItem('baloot-ar'));if(s&&Array.isArray(s.rounds))S=Object.assign(S,s);}catch(e){}
 if(!Array.isArray(S.history))S.history=[];
@@ -489,6 +498,8 @@ function syncEnd(){
   return t;
 }
 let setupDealer=S.firstDealer;
+if(S.abFor==='buyer')abFor='buyer';
+entryVal=abFor==='buyer'?cur.ab:TOTAL-cur.ab;
 const pName=i=>(S.players[i]||'').trim()||SEATS[i];
 const dealerIdx=()=>(S.firstDealer+S.rounds.length)%4;
 const persist=()=>{try{localStorage.setItem('baloot-ar',JSON.stringify(S));}catch(e){}};
@@ -524,8 +535,12 @@ function preview(){
   $('kabSeg').hidden=!cur.kaboot;
   $('abBlock').classList.toggle('dim',cur.kaboot);
   const opp=cur.buyer==='A'?'B':'A';
-  $('splitBuyer').innerHTML=`${nm(cur.buyer)}: <b class="num">${cur.ab}</b>`;
+  $('splitBuyer').innerHTML=`${nm(cur.buyer)} (المشتري): <b class="num">${cur.ab}</b>`;
   $('splitOpp').innerHTML=`${nm(opp)}: <b class="num">${TOTAL-cur.ab}</b>`;
+  const at=abFor==='buyer'?cur.buyer:opp;
+  $('abForOpp').innerHTML=`${nm(opp)}<small>مو مشتري</small>`;$('abForOpp').dataset.t=opp;$('abForOpp').setAttribute('aria-pressed',abFor==='opp');
+  $('abForBuyer').innerHTML=`${nm(cur.buyer)}<small>المشتري</small>`;$('abForBuyer').dataset.t=cur.buyer;$('abForBuyer').setAttribute('aria-pressed',abFor==='buyer');
+  $('abLbl').textContent=`أكلات ${nm(at)}`;
   const r=scoreRound(cur);
   $('result').className='result '+r.status;
   $('verdict').textContent=r.status==='ok'?`${nm(cur.buyer)} جابوا المطلوب`:r.status==='fail'?`${nm(cur.buyer)}: نامت (بارجير)`:`كبوت لـ ${nm(cur.kabTeam)}`;
@@ -749,38 +764,42 @@ $('startGame').onclick=()=>{
   S.players=[0,1,2,3].map(i=>$('p'+i).value.trim());
   if(S.rounds.length){const g=snapshot();delete g.current;S.history.push(g);S.history=S.history.slice(-100);}
   S.firstDealer=setupDealer;S.rounds=[];S.started=true;S.start=Date.now();S.end=null;view='game';persist();
-  cur={buyer:'A',ab:90,kaboot:false,kabTeam:'A',proj:emptyProj()};$('ab').value=90;$('abRange').value=90;
+  cur={buyer:'A',ab:90,kaboot:false,kabTeam:'A',proj:emptyProj()};resetAb();
   render();window.scrollTo({top:0});
 };
 $('cancelSetup').onclick=()=>{S.started=true;render();};
 $('skip').onclick=()=>{
   S.rounds.push({skip:true,t:Date.now()});persist();
   cur={buyer:cur.buyer,ab:90,kaboot:false,kabTeam:'A',proj:emptyProj()};
-  $('ab').value=90;$('abRange').value=90;render();
+  resetAb();render();
   window.scrollTo({top:0,behavior:'smooth'});
 };
 
 $('rows').addEventListener('click',e=>{const b=e.target.closest('.x');if(!b)return;S.rounds.splice(+b.dataset.i,1);persist();render();});
-$('buyA').onclick=()=>{cur.buyer='A';preview();};
-$('buyB').onclick=()=>{cur.buyer='B';preview();};
+$('buyA').onclick=()=>{cur.buyer='A';setAb(entryVal);};
+$('buyB').onclick=()=>{cur.buyer='B';setAb(entryVal);};
 $('kabA').onclick=()=>{cur.kabTeam='A';preview();};
 $('kabB').onclick=()=>{cur.kabTeam='B';preview();};
 $('kaboot').onclick=()=>{cur.kaboot=!cur.kaboot;cur.kabTeam=cur.buyer;preview();};
-const setAb=v=>{v=Math.max(0,Math.min(TOTAL,Math.round(+v||0)));cur.ab=v;$('abRange').value=v;if(document.activeElement!==$('ab'))$('ab').value=v;preview();};
+const setAb=v=>{v=Math.max(0,Math.min(TOTAL,Math.round(+v||0)));entryVal=v;cur.ab=abFor==='buyer'?v:TOTAL-v;$('abRange').value=v;if(document.activeElement!==$('ab'))$('ab').value=v;preview();};
+const resetAb=()=>{cur.ab=90;entryVal=abFor==='buyer'?90:TOTAL-90;$('ab').value=entryVal;$('abRange').value=entryVal;};
+$('abForOpp').onclick=()=>{abFor='opp';S.abFor=abFor;persist();setAb(entryVal);};
+$('abForBuyer').onclick=()=>{abFor='buyer';S.abFor=abFor;persist();setAb(entryVal);};
 $('ab').addEventListener('input',e=>setAb(e.target.value));
-$('ab').addEventListener('blur',()=>{$('ab').value=cur.ab;});
+$('ab').addEventListener('blur',()=>{$('ab').value=entryVal;});
 $('abRange').addEventListener('input',e=>setAb(e.target.value));
-$('abPlus').onclick=()=>setAb(cur.ab+1);
-$('abMinus').onclick=()=>setAb(cur.ab-1);
+$('abPlus').onclick=()=>setAb(entryVal+1);
+$('abMinus').onclick=()=>setAb(entryVal-1);
 $('save').onclick=()=>{
   S.rounds.push(Object.assign(JSON.parse(JSON.stringify(cur)),{t:Date.now()}));persist();
   cur={buyer:cur.buyer,ab:90,kaboot:false,kabTeam:'A',proj:emptyProj()};
-  $('ab').value=90;$('abRange').value=90;render();
+  resetAb();render();
   window.scrollTo({top:0,behavior:'smooth'});
 };
 const openSetup=()=>{S.started=false;view='game';setupDealer=S.firstDealer;buildSetup();render();window.scrollTo({top:0});};
 $('newGame').onclick=openSetup;$('newGame2').onclick=openSetup;
 buildSetup();
+$('ab').value=entryVal;$('abRange').value=entryVal;
 render();
 
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
