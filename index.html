@@ -218,6 +218,18 @@ input[type=range]{width:100%;accent-color:var(--gold)}
 .extra span{font-weight:600}
 #abForSeg button{display:flex;flex-direction:column;align-items:center;line-height:1.2;gap:2px}
 #abForSeg small{font-size:.75rem;font-weight:700;opacity:.8}
+/* project stats table */
+.ptable{background:var(--felt-2);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.ptable .pr{display:grid;grid-template-columns:1fr 70px 70px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.ptable .pr:last-child{border-bottom:0}
+.ptable .pr span:first-child{font-weight:800}
+.ptable .pr b,.ptable .pr .us,.ptable .pr .them{text-align:center}
+.ptable .pr b{font-size:1.25rem;font-weight:900}
+.ptable .ph{color:var(--muted);font-weight:700;font-size:.9rem;background:color-mix(in srgb,var(--card) 60%,transparent)}
+.ptable .ph span:first-child{font-weight:700}
+.ptable .pt{background:color-mix(in srgb,var(--gold) 10%,transparent)}
+.ptable .us{color:var(--us)} .ptable .them{color:var(--them)}
+:root[data-skin] .ptable{background:color-mix(in srgb,var(--felt-2) 74%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 /* ===== per-theme layout ===== */
 :root[data-skin] body{background-image:none}
 :root[data-skin] .panel,:root[data-skin] .dealer,:root[data-skin] .tile,:root[data-skin] .ritem,:root[data-skin] .gitem,:root[data-skin] .team{background:color-mix(in srgb,var(--felt-2) 74%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
@@ -411,7 +423,9 @@ input[type=range]{width:100%;accent-color:var(--gold)}
       <span style="width:60px"></span>
     </div>
     <div class="tiles" id="tiles"></div>
-    <p class="snote">الفوز والخسارة محسوبين لفريق «نحن»، والمدة والفارق بس للألعاب يلي خلصت.</p>
+    <p class="snote">الفوز والخسارة محسوبين لفريق «نحن». عدد الألعاب والمدة والفارق بس للألعاب يلي خلصت، والجولات والمشاريع لكل الجولات يلي انلعبت.</p>
+    <h2 class="sh">المشاريع</h2>
+    <div class="ptable" id="projStats"></div>
     <h2 class="sh">آخر الألعاب</h2>
     <div class="glist" id="glist"></div>
     <button class="reset" id="clearStats">↺ تصفير الإحصائيات</button>
@@ -441,7 +455,14 @@ function scoreRound(r){
   const pA=projSum(r.proj.A), pB=projSum(r.proj.B);
   if(r.kaboot){
     const w=r.kabTeam, l=w==='A'?'B':'A', res={};
-    res[w]=25+(pA+pB)/10; res[l]=1; // kaboot team gets 25 + all projects
+    const pj={A:pA,B:pB};
+    if(w===r.buyer){
+      // buyer made kaboot: each team keeps its own projects
+      res[w]=25+pj[w]/10; res[l]=1+pj[l]/10;
+    }else{
+      // non-buyer made kaboot: they take 25 + all projects (the buyer's projects go to them)
+      res[w]=25+(pA+pB)/10; res[l]=1;
+    }
     return {A:res.A,B:res.B,status:'kab'};
   }
   const buyer=r.buyer, opp=buyer==='A'?'B':'A';
@@ -480,8 +501,9 @@ function totals(rounds){
     o.played++;
     if(o.done)return;
     const reached=o.A>=TARGET||o.B>=TARGET;
-    // reaching 106 through a kaboot: play one extra round, then the higher team wins
-    if(s.status==='kab'&&reached){o.extra=true;return;}
+    // the kaboot team crosses 106 with this kaboot: play one extra round, then the higher team wins
+    const w=r.kabTeam, crossed=s.status==='kab'&&o[w]>=TARGET&&o[w]-s[w]<TARGET;
+    if(crossed){o.extra=true;return;}
     if(o.extra){if(o.A!==o.B){o.extra=false;o.done=true;}return;}
     if(reached&&o.A!==o.B)o.done=true;});
   return o;
@@ -591,11 +613,18 @@ function renderStats(){
   const margin=fin.length?Math.max(...fin.map(x=>Math.abs(x.t.A-x.t.B))):null;
   const sum={played:0,skip:0,kab:{A:0,B:0},fail:{A:0,B:0}};
   games.forEach(g=>{const t=totals(g.rounds);sum.played+=t.played;sum.skip+=g.rounds.length-t.played;['A','B'].forEach(k=>{sum.kab[k]+=t.kab[k];sum.fail[k]+=t.fail[k];});});
+  // project counts per team
+  const pc={A:{},B:{}};
+  games.forEach(g=>g.rounds.forEach(r=>{if(r.skip||!r.proj)return;['A','B'].forEach(t=>PROJ.forEach(p=>{pc[t][p.k]=(pc[t][p.k]||0)+(r.proj[t]&&r.proj[t][p.k]||0);}));}));
+  const ptot=t=>PROJ.reduce((a,p)=>a+(pc[t][p.k]||0),0);
+  $('projStats').innerHTML=`<div class="pr ph"><span>المشروع</span><span class="us">نحن</span><span class="them">هنن</span></div>`+
+    PROJ.map(p=>`<div class="pr" data-k="${p.k}"><span>${p.ar}</span><b class="us">${pc.A[p.k]||0}</b><b class="them">${pc.B[p.k]||0}</b></div>`).join('')+
+    `<div class="pr pt"><span>المجموع</span><b class="us">${ptot('A')}</b><b class="them">${ptot('B')}</b></div>`;
   const dash='–';
   const tile=(l,v,cls='')=>`<div class="tile"><small>${l}</small><b class="${cls}">${v}</b></div>`;
   const pair=(a,b)=>`<span class="us">${a}</span> / <span class="them">${b}</span>`;
   $('tiles').innerHTML=[
-    tile('عدد الألعاب',games.length),
+    tile('عدد الألعاب',fin.length),
     tile('نسبة الفوز',fin.length?Math.round(wins/fin.length*100)+'%':dash),
     tile('فوز',`<span class="us">${wins}</span>`),
     tile('خسارة',`<span class="them">${losses}</span>`),
