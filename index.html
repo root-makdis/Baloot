@@ -1042,7 +1042,7 @@ $('startGame').onclick=()=>{
 $('cancelSetup').onclick=()=>{S.started=true;render();};
 $('skip').onclick=()=>{
   if(staleCheck())return;
-  if(totals(S.rounds).done||Date.now()-lastSave<500)return;lastSave=Date.now();
+  if(totals(S.rounds).done||Date.now()-lastSave<400)return;lastSave=Date.now();
   S.rounds.push({skip:true,t:Date.now()});persist();
   cur={buyer:cur.buyer,ab:90,kaboot:false,kabTeam:'A',proj:emptyProj()};
   resetAb();render();
@@ -1066,7 +1066,7 @@ $('abPlus').onclick=()=>setAb(entryVal+1);
 $('abMinus').onclick=()=>setAb(entryVal-1);
 $('save').onclick=()=>{
   if(staleCheck())return;
-  if(totals(S.rounds).done||Date.now()-lastSave<500)return;lastSave=Date.now();
+  if(totals(S.rounds).done||Date.now()-lastSave<400)return;lastSave=Date.now();
   S.rounds.push(Object.assign(JSON.parse(JSON.stringify(cur)),{t:Date.now()}));persist();
   cur={buyer:cur.buyer,ab:90,kaboot:false,kabTeam:'A',proj:emptyProj()};
   resetAb();render();
