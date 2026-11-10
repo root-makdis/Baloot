@@ -569,7 +569,7 @@ let S={rounds:[],players:['','','',''],firstDealer:0,started:false,start:null,en
 let cur={buyer:'A',ab:90,kaboot:false,kabTeam:'A',proj:emptyProj()};
 // which team's cards we type in: 'opp' (non-buyer, fewer cards) or 'buyer'
 let abFor='opp', entryVal=72;
-let view='game', pendingDel=null;
+let view='game', pendingDel=null, pendingRound=null;
 // ---- storage, kept in sync when the app is open in more than one place ----
 const KEY='baloot-ar', S0=JSON.stringify(S);let lastRaw=null;
 function loadS(){try{const raw=localStorage.getItem(KEY);if(!raw||raw===lastRaw)return false;const s=JSON.parse(raw);
@@ -620,6 +620,7 @@ const dealerIdx=()=>(S.firstDealer+S.rounds.length)%4;
 const persist=()=>{try{const raw=JSON.stringify(S);localStorage.setItem(KEY,raw);lastRaw=raw;}catch(e){}};
 // returns true when another copy of the app changed the game: the screen is refreshed and the tapped action is skipped
 function staleCheck(){if(!loadS())return false;abFor=S.abFor==='buyer'?'buyer':'opp';setupDealer=S.firstDealer;pendingDel=null;
+  try{pendingRound=null;$('roundConfirm').hidden=true;}catch(e){}
   try{applySkin();buildSetup();}catch(e){}render();toast('اللعبة تحدّثت من شاشة تانية');return true;}
 function toast(msg){let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');document.body.appendChild(t);}
   t.textContent=msg;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2600);}
@@ -823,7 +824,7 @@ function renderStats(){
   $('glist').innerHTML=list.length?list.map(({g,key})=>{
     const t=totals(g.rounds);
     const tag=!t.done?(g.current?'<span class="gtag open">عم تنلعب</span>':'<span class="gtag open">ما خلصت</span>'):t.A>t.B?'<span class="gtag win">ربحنا</span>':'<span class="gtag loss">خسرنا</span>';
-    const names=g.players&&g.players.some(Boolean)?` · ${esc(g.players.map((p,i)=>pname(p)||SEATS[i]).join('، '))}`:'';
+    const names=(g.players&&g.players.some(Boolean)?` · ${esc(g.players.map((p,i)=>pname(p)||SEATS[i]).join('، '))}`:'')+(g.namesUnsure?' · ⚠ الأسامي يمكن مش دقيقة':'');
     const del=pendingDel===key?`<div class="gconfirm"><span>تحذف هاللعبة من الإحصائيات؟</span><button class="gyes" data-key="${key}">إي، احذف</button><button class="gno">لا</button></div>`:'';
     return `<div class="gitem${del?' asking':''}" data-key="${key}"><div class="gmain"><div class="gs"><span class="us">نحن ${fmt(t.A)}</span> – <span class="them">${fmt(t.B)} هنن</span></div><small>${fmtDate(g.start)} · ${fmtDur(gameDur(g))}${names}</small></div>${tag}<button class="gdel" data-key="${key}" aria-label="احذف اللعبة">🗑</button>${del}</div>`;
   }).join(''):'<div class="empty">ما في ألعاب لسا.</div>';
@@ -1196,12 +1197,12 @@ $('skip').onclick=()=>{
   window.scrollTo({top:0,behavior:'smooth'});
 };
 
-let pendingRound=null;
+
 $('rows').addEventListener('click',e=>{const b=e.target.closest('.x');if(!b)return;if(staleCheck())return;const i=+b.dataset.i;
   if(totals(S.rounds).done){pendingRound=i;$('roundConfirmText').textContent=`اللعبة خلصت. تمسح الجولة ${i+1} وترجع تفتح اللعبة؟`;$('roundConfirm').hidden=false;$('roundConfirm').scrollIntoView({block:'nearest'});return;}
   S.rounds.splice(i,1);persist();render();});
 $('roundDelNo').onclick=()=>{pendingRound=null;$('roundConfirm').hidden=true;};
-$('roundDelYes').onclick=()=>{if(staleCheck()||pendingRound==null){$('roundConfirm').hidden=true;return;}S.rounds.splice(pendingRound,1);pendingRound=null;$('roundConfirm').hidden=true;persist();render();};
+$('roundDelYes').onclick=()=>{if(staleCheck()||pendingRound==null||!totals(S.rounds).done||pendingRound>=S.rounds.length){pendingRound=null;$('roundConfirm').hidden=true;return;}S.rounds.splice(pendingRound,1);pendingRound=null;$('roundConfirm').hidden=true;persist();render();};
 $('buyA').onclick=()=>{cur.buyer='A';setAb(entryVal);};
 $('buyB').onclick=()=>{cur.buyer='B';setAb(entryVal);};
 $('kabA').onclick=()=>{cur.kabTeam='A';preview();};
@@ -1211,10 +1212,10 @@ const setAb=v=>{v=Math.max(0,Math.min(TOTAL,Math.round(+v||0)));entryVal=v;cur.a
 const resetAb=()=>{cur.ab=90;entryVal=abFor==='buyer'?90:TOTAL-90;$('ab').value=entryVal;$('abRange').value=entryVal;};
 $('abForOpp').onclick=()=>{abFor='opp';S.abFor=abFor;persist();setAb(entryVal);};
 $('abForBuyer').onclick=()=>{abFor='buyer';S.abFor=abFor;persist();setAb(entryVal);};
-$('ab').addEventListener('input',e=>{const el=e.target,clean=el.value.replace(/[^0-9٠-٩]/g,'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));if(clean!==el.value)el.value=clean;setAb(clean);});
+$('ab').addEventListener('input',e=>{const el=e.target,clean=el.value.replace(/[^0-9٠-٩]/g,'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));if(clean!==el.value)el.value=clean;if(clean!=='')setAb(clean);});
 // one tap selects the whole number, so typing replaces it
 const selectAb=()=>{const el=$('ab');try{el.setSelectionRange(0,el.value.length);}catch(err){el.select();}};
-$('ab').addEventListener('focus',()=>{selectAb();setTimeout(selectAb,0);});
+$('ab').addEventListener('focus',()=>{selectAb();const v0=$('ab').value;setTimeout(()=>{if($('ab').value===v0)selectAb();},0);});
 $('ab').addEventListener('pointerup',e=>{if(document.activeElement===$('ab')&&$('ab').selectionStart===$('ab').selectionEnd){e.preventDefault();selectAb();}});
 $('ab').addEventListener('keydown',e=>{if(e.key==='Enter')$('ab').blur();});
 $('ab').addEventListener('blur',()=>{$('ab').value=entryVal;});
