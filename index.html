@@ -240,6 +240,44 @@ input[type=range]{width:100%;accent-color:var(--gold)}
 .gconfirm .gyes{background:var(--bad);color:#2a0b07}
 #toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;z-index:50;background:var(--gold);color:var(--gold-ink);font-weight:800;padding:10px 18px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.4);transition:opacity .25s,transform .25s;white-space:nowrap}
 #toast.on{opacity:1;transform:translate(-50%,0)}
+/* skip inside the dealer box */
+.dealer .skip{margin-top:2px}
+/* day folders */
+.days{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.day{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--line);background:var(--felt-2);border-radius:14px;padding:8px 12px;font-weight:700;color:var(--fg);white-space:nowrap}
+.day svg{color:var(--gold);opacity:.85}
+.day em{font-style:normal;font-size:.8rem;font-weight:800;background:color-mix(in srgb,var(--gold) 20%,transparent);color:var(--gold);border-radius:999px;padding:0 8px;min-width:22px;text-align:center}
+.day.on{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 16%,var(--felt-2))}
+.day.on svg{opacity:1}
+/* tabs */
+.stabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--felt-2);border:1px solid var(--line);border-radius:16px;padding:5px}
+.stabs button{border:0;background:transparent;border-radius:12px;padding:10px;font-weight:800;font-size:1.05rem;color:var(--muted)}
+.stabs button[aria-pressed="true"]{background:var(--gold);color:var(--gold-ink)}
+/* player leaderboard */
+.plist{display:flex;flex-direction:column;gap:8px}
+.prow{display:grid;grid-template-columns:32px 1fr auto 52px;grid-template-rows:auto auto;align-items:center;gap:4px 10px;text-align:start;border:1.5px solid var(--line);background:var(--felt-2);border-radius:16px;padding:10px 14px;color:var(--fg)}
+.prow.on{border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 22%,transparent)}
+.prow .pm{font-size:1.25rem;text-align:center}
+.prow .rk{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--card);color:var(--muted);font-weight:800;font-size:.85rem}
+.prow .pn{font-weight:800;font-size:1.1rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .pwl{font-weight:800;font-variant-numeric:tabular-nums}
+.prow .pwl .us{color:var(--us)} .prow .pwl .them{color:var(--them)}
+.prow .ppct{font-weight:900;font-size:1.1rem;text-align:end;font-variant-numeric:tabular-nums}
+.prow .pbar{grid-column:2/5;display:block;height:5px;border-radius:3px;background:color-mix(in srgb,var(--them) 30%,transparent);overflow:hidden}
+.prow .pbar i{display:block;height:100%;background:var(--us);border-radius:3px}
+.pdetail{display:flex;flex-direction:column;gap:12px;background:var(--felt-2);border:1px solid var(--gold);border-radius:20px;padding:14px;scroll-margin-top:12px}
+.phead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.phead b{font-size:1.5rem;font-weight:900}
+.phead span{color:var(--gold);font-weight:800}
+.wlbar{display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px}
+.wlbar .w{background:var(--us)} .wlbar .l{background:var(--them)} .wlbar .n{background:var(--line)}
+.tsub{font-size:.75rem;color:var(--muted);font-weight:700}
+.partners{display:flex;flex-direction:column;gap:6px}
+.mrow{display:grid;grid-template-columns:1fr auto auto 52px;gap:10px;align-items:center;background:var(--card);border-radius:12px;padding:8px 12px;font-variant-numeric:tabular-nums}
+.mrow b:last-child{text-align:end}
+:root[data-skin] .day,:root[data-skin] .stabs,:root[data-skin] .prow,:root[data-skin] .pdetail{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+:root[data-skin="marina"] .day,:root[data-skin="marina"] .stabs,:root[data-skin="marina"] .prow,:root[data-skin="marina"] .pdetail{background:rgba(4,58,74,.7);border-color:rgba(255,255,255,.28)}
+:root[data-skin="xmas"] .day,:root[data-skin="xmas"] .stabs,:root[data-skin="xmas"] .prow,:root[data-skin="xmas"] .pdetail{background:rgba(70,6,16,.82)}
 /* ===== per-theme layout ===== */
 :root[data-skin] body{background-image:none}
 :root[data-skin] .panel,:root[data-skin] .dealer,:root[data-skin] .tile,:root[data-skin] .ritem,:root[data-skin] .gitem,:root[data-skin] .team{background:color-mix(in srgb,var(--felt-2) 74%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
@@ -355,6 +393,7 @@ input[type=range]{width:100%;accent-color:var(--gold)}
   <section class="dealer" id="dealerBox" aria-label="الموزع">
     <div class="dealer-line"><span class="dot"></span><span>الموزّع:</span><b id="dealerName"></b><small id="dealerSeat"></small></div>
     <div class="table" id="miniTable"></div>
+    <button class="skip" id="skip"><bdi>Skip</bdi> (ما حدا اشترى)</button>
   </section>
 
   <div class="extra" id="extraBanner" hidden>
@@ -413,7 +452,6 @@ input[type=range]{width:100%;accent-color:var(--gold)}
     </div>
 
     <button class="save" id="save">احفظ الجولة</button>
-    <button class="skip" id="skip"><bdi>Skip</bdi> (ما حدا اشترى)</button>
   </section>
 
   <section class="hist" aria-label="الجولات">
@@ -446,12 +484,24 @@ input[type=range]{width:100%;accent-color:var(--gold)}
       <h2>الإحصائيات</h2>
       <span style="width:60px"></span>
     </div>
+    <div class="days" id="dayFolders" role="group" aria-label="الأيام"></div>
+    <div class="stabs" role="group">
+      <button id="tabTeams" aria-pressed="true">الفرق</button>
+      <button id="tabPlayers" aria-pressed="false">اللاعبين</button>
+    </div>
+    <div id="playerStats" hidden style="display:flex;flex-direction:column;gap:14px">
+      <div class="plist" id="plist"></div>
+      <div class="pdetail" id="pdetail" hidden></div>
+      <p class="snote" id="pnote">كل لاعب بتنحسبلو نتيجة فريقو. الإحصائيات بتطلع بس للألعاب يلي انكتبت فيها الأسامي ببداية اللعبة.</p>
+    </div>
+    <div id="teamStats" style="display:flex;flex-direction:column;gap:16px">
     <div class="tiles" id="tiles"></div>
     <p class="snote">الفوز والخسارة محسوبين لفريق «نحن». عدد الألعاب والمدة والفارق بس للألعاب يلي خلصت، والجولات والمشاريع لكل الجولات يلي انلعبت.</p>
     <h2 class="sh">المشاريع</h2>
     <div class="ptable" id="projStats"></div>
     <h2 class="sh">آخر الألعاب</h2>
     <div class="glist" id="glist"></div>
+    </div>
     <button class="reset" id="clearStats">↺ تصفير الإحصائيات</button>
     <div class="reset-confirm" id="clearStats2" hidden>
       <span>أكيد؟ كل الإحصائيات رح تنمسح.</span>
@@ -535,7 +585,7 @@ function totals(rounds){
     if(reached&&o.A!==o.B)o.done=true;});
   return o;
 }
-const snapshot=()=>({start:S.start,end:S.end,players:S.players.slice(),rounds:S.rounds,current:true});
+const snapshot=()=>({start:S.start,end:S.end,players:S.players.slice(),firstDealer:S.firstDealer,rounds:S.rounds,current:true});
 const curCounts=()=>S.rounds.length&&!(S.statsReset&&S.start<S.statsReset)&&S.hiddenStart!==S.start;
 const allGames=()=>S.history.concat(curCounts()?[snapshot()]:[]);
 const gameDur=g=>{const last=g.rounds.length?(g.rounds[g.rounds.length-1].t||g.start):g.start;return Math.max(0,(g.end||last)-g.start);};
@@ -646,8 +696,85 @@ function render(){
   if(view==='stats')renderStats();
   buildProjs();preview();
 }
+// ---- stats: day folders, team view, player view ----
+let statsDay='all', statsTab='teams', statsPlayer=null;
+const pad2=n=>String(n).padStart(2,'0');
+const dayKey=t=>{const d=new Date(t);return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;};
+function dayLabel(k){const now=new Date(),y=new Date(now);y.setDate(now.getDate()-1);
+  if(k===dayKey(now))return 'اليوم';if(k===dayKey(y))return 'مبارح';
+  const [a,b,c]=k.split('-').map(Number);const d=new Date(a,b-1,c);
+  try{return new Intl.DateTimeFormat('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'}).format(d);}catch(e){return k;}}
+const pname=n=>(n||'').trim();
+function playerTable(entries){
+  const P={};
+  entries.forEach(({g})=>{if(!g.players)return;const t=totals(g.rounds);
+    g.players.forEach((raw,i)=>{const name=pname(raw);if(!name)return;const id=name.toLowerCase(),team=i%2===0?'A':'B',opp=team==='A'?'B':'A';
+      const p=P[id]||(P[id]={name,games:0,done:0,wins:0,losses:0,pts:0,ptsAgainst:0,bought:0,fails:0,kab:0,proj:0,dealt:0,dealtKnown:false,partners:{}});
+      p.name=name;p.games++;p.pts+=t[team];p.ptsAgainst+=t[opp];p.kab+=t.kab[team];p.fails+=t.fail[team];
+      g.rounds.forEach((r,ri)=>{if(r.skip)return;if(r.buyer===team)p.bought++;
+        if(r.proj&&r.proj[team])PROJ.forEach(q=>{p.proj+=r.proj[team][q.k]||0;});});
+      if(g.firstDealer!=null){p.dealtKnown=true;g.rounds.forEach((r,ri)=>{if((g.firstDealer+ri)%4===i)p.dealt++;});}
+      const won=t.done&&t[team]>t[opp];
+      if(t.done){p.done++;won?p.wins++:p.losses++;}
+      const mate=pname(g.players[(i+2)%4]);
+      if(mate){const m=p.partners[mate.toLowerCase()]||(p.partners[mate.toLowerCase()]={name:mate,done:0,wins:0});if(t.done){m.done++;if(won)m.wins++;}}
+    });});
+  return Object.values(P).map(p=>Object.assign(p,{rate:p.done?p.wins/p.done:0})).sort((a,b)=>b.rate-a.rate||b.wins-a.wins||b.games-a.games||a.name.localeCompare(b.name));
+}
+function renderPlayers(entries){
+  const list=playerTable(entries), pct=x=>Math.round(x*100)+'%';
+  if(statsPlayer&&!list.some(p=>p.name.toLowerCase()===statsPlayer))statsPlayer=null;
+  const medal=i=>['🥇','🥈','🥉'][i]||`<span class="rk">${i+1}</span>`;
+  $('plist').innerHTML=list.length?list.map((p,i)=>`<button class="prow${statsPlayer===p.name.toLowerCase()?' on':''}" data-id="${esc(p.name.toLowerCase())}">
+      <span class="pm">${medal(i)}</span><span class="pn">${esc(p.name)}</span>
+      <span class="pwl"><b class="us">${p.wins}</b>–<b class="them">${p.losses}</b></span>
+      <span class="ppct">${p.done?pct(p.rate):'–'}</span>
+      <i class="pbar"><i style="width:${p.done?Math.round(p.rate*100):0}%"></i></i></button>`).join('')
+    :'<div class="empty">ما في لاعبين بهالفترة. اكتبوا الأسامي ببداية اللعبة.</div>';
+  const p=list.find(x=>x.name.toLowerCase()===statsPlayer);
+  $('pdetail').hidden=!p;
+  if(!p)return;
+  const dash='–',tile=(l,v,cls='')=>`<div class="tile"><small>${l}</small><b class="${cls}">${v}</b></div>`;
+  const ratio=p.losses?(p.wins/p.losses).toFixed(2).replace(/\.?0+$/,''):(p.wins?'∞':dash);
+  const partners=Object.values(p.partners).filter(m=>m.done).sort((a,b)=>b.wins/b.done-a.wins/a.done||b.wins-a.wins);
+  const best=partners[0];
+  $('pdetail').innerHTML=`<div class="phead"><b>${esc(p.name)}</b><span>${p.done?pct(p.rate)+' فوز':'ما خلص ولا لعبة'}</span></div>
+    <div class="wlbar" aria-hidden="true"><i class="w" style="flex:${p.wins||0}"></i><i class="l" style="flex:${p.losses||0}"></i>${p.done?'':'<i class="n" style="flex:1"></i>'}</div>
+    <div class="tiles">${[
+      tile('ألعاب لعبها',p.games),
+      tile('نسبة الفوز',p.done?pct(p.rate):dash),
+      tile('فوز',`<span class="us">${p.wins}</span>`),
+      tile('خسارة',`<span class="them">${p.losses}</span>`),
+      tile('فوز : خسارة',`${p.wins} : ${p.losses}`,'sm'),
+      tile('النسبة (فوز ÷ خسارة)',ratio),
+      tile('مجموع نقاط فريقو',fmt(p.pts)),
+      tile('متوسط النقاط باللعبة',p.games?fmt(Math.round(p.pts/p.games*10)/10):dash),
+      tile('نقاط ضدّو',fmt(p.ptsAgainst)),
+      tile('جولات اشترى فيها فريقو',p.bought),
+      tile('نجاح الشراء',p.bought?pct((p.bought-p.fails)/p.bought):dash),
+      tile('نامت',`<span class="them">${p.fails}</span>`),
+      tile('كبوت',`<span style="color:var(--gold)">${p.kab}</span>`),
+      tile('مشاريع',p.proj),
+      tile('وزّع',p.dealtKnown?p.dealt:dash),
+      tile('أحسن شريك',best?`${esc(best.name)} <small class="tsub">${best.wins}/${best.done}</small>`:dash,'sm'),
+    ].join('')}</div>
+    ${partners.length>1?`<div class="partners"><span class="lbl">مع كل شريك</span>${partners.map(m=>`<div class="mrow"><span>${esc(m.name)}</span><b class="us">${m.wins}</b><span>من ${m.done}</span><b>${pct(m.wins/m.done)}</b></div>`).join('')}</div>`:''}`;
+}
+function renderDays(all){
+  const counts={};all.forEach(x=>{const k=dayKey(x.g.start);counts[k]=(counts[k]||0)+1;});
+  const keys=Object.keys(counts).sort().reverse();
+  if(statsDay!=='all'&&!counts[statsDay])statsDay='all';
+  const chip=(k,label,n)=>`<button class="day${statsDay===k?' on':''}" data-day="${k}"><svg viewBox="0 0 20 16" width="16" height="13" aria-hidden="true"><path fill="currentColor" d="M1 3a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2z"/></svg><span>${label}</span><em>${n}</em></button>`;
+  $('dayFolders').innerHTML=chip('all','كل الأيام',all.length)+keys.map(k=>chip(k,dayLabel(k),counts[k])).join('');
+}
 function renderStats(){
-  const games=allGames(), fin=games.map(g=>({g,t:totals(g.rounds)})).filter(x=>x.t.done);
+  const all=allGames().map((g,i)=>({g,key:g.current?'cur':'h'+i}));
+  renderDays(all);
+  const entries=all.filter(x=>statsDay==='all'||dayKey(x.g.start)===statsDay);
+  $('tabTeams').setAttribute('aria-pressed',statsTab==='teams');$('tabPlayers').setAttribute('aria-pressed',statsTab==='players');
+  $('teamStats').hidden=statsTab!=='teams';$('playerStats').hidden=statsTab!=='players';
+  renderPlayers(entries);
+  const games=entries.map(x=>x.g), fin=games.map(g=>({g,t:totals(g.rounds)})).filter(x=>x.t.done);
   const wins=fin.filter(x=>x.t.A>x.t.B).length, losses=fin.length-wins;
   const durs=fin.map(x=>gameDur(x.g));
   const margin=fin.length?Math.max(...fin.map(x=>Math.abs(x.t.A-x.t.B))):null;
@@ -677,9 +804,9 @@ function renderStats(){
     tile('نامت (نحن / هنن)',pair(sum.fail.A,sum.fail.B),'sm'),
     tile('Skip',`<span style="color:var(--skip)">${sum.skip}</span>`),
   ].join('');
-  const list=games.slice().reverse();
-  $('glist').innerHTML=list.length?list.map((g,j)=>{
-    const t=totals(g.rounds), key=g.current?'cur':'h'+(games.length-1-j);
+  const list=entries.slice().reverse();
+  $('glist').innerHTML=list.length?list.map(({g,key})=>{
+    const t=totals(g.rounds);
     const tag=!t.done?(g.current?'<span class="gtag open">عم تنلعب</span>':'<span class="gtag open">ما خلصت</span>'):t.A>t.B?'<span class="gtag win">ربحنا</span>':'<span class="gtag loss">خسرنا</span>';
     const names=g.players&&g.players.some(Boolean)?` · ${esc(g.players.map((p,i)=>p||SEATS[i]).join('، '))}`:'';
     const del=pendingDel===key?`<div class="gconfirm"><span>تحذف هاللعبة من الإحصائيات؟</span><button class="gyes" data-key="${key}">إي، احذف</button><button class="gno">لا</button></div>`:'';
@@ -1011,6 +1138,11 @@ document.querySelectorAll('.closeSettings').forEach(b=>b.addEventListener('click
 applySkin();
 document.querySelectorAll('.openStats').forEach(b=>b.addEventListener('click',()=>{view='stats';render();window.scrollTo({top:0});}));
 $('closeStats').onclick=()=>{view='game';render();window.scrollTo({top:0});};
+$('dayFolders').addEventListener('click',e=>{const b=e.target.closest('.day');if(!b)return;statsDay=b.dataset.day;pendingDel=null;renderStats();});
+$('tabTeams').onclick=()=>{statsTab='teams';renderStats();};
+$('tabPlayers').onclick=()=>{statsTab='players';renderStats();};
+$('plist').addEventListener('click',e=>{const b=e.target.closest('.prow');if(!b)return;statsPlayer=statsPlayer===b.dataset.id?null:b.dataset.id;renderStats();
+  if(statsPlayer)setTimeout(()=>{try{$('pdetail').scrollIntoView({behavior:'smooth',block:'start'});}catch(err){}},30);});
 $('glist').addEventListener('click',e=>{
   const d=e.target.closest('.gdel'),y=e.target.closest('.gyes'),n=e.target.closest('.gno');
   if(d){pendingDel=pendingDel===d.dataset.key?null:d.dataset.key;renderStats();return;}
