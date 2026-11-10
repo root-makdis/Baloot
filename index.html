@@ -278,6 +278,11 @@ input[type=range]{width:100%;accent-color:var(--gold)}
 :root[data-skin] .day,:root[data-skin] .stabs,:root[data-skin] .prow,:root[data-skin] .pdetail{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 :root[data-skin="marina"] .day,:root[data-skin="marina"] .stabs,:root[data-skin="marina"] .prow,:root[data-skin="marina"] .pdetail{background:rgba(4,58,74,.7);border-color:rgba(255,255,255,.28)}
 :root[data-skin="xmas"] .day,:root[data-skin="xmas"] .stabs,:root[data-skin="xmas"] .prow,:root[data-skin="xmas"] .pdetail{background:rgba(70,6,16,.82)}
+html,body,button,input,a,label,.seg,.pchip{touch-action:manipulation}
+.rconfirm{display:flex;flex-direction:column;gap:8px;text-align:center;font-weight:700;background:color-mix(in srgb,var(--bad) 12%,var(--felt-2));border:1px solid var(--bad);border-radius:16px;padding:12px}
+.rconfirm div{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rconfirm button{border:1.5px solid var(--bad);border-radius:10px;padding:8px;font-weight:800;background:transparent;color:var(--bad)}
+.rconfirm .ryes{background:var(--bad);color:#2a0b07}
 /* ===== per-theme layout ===== */
 :root[data-skin] body{background-image:none}
 :root[data-skin] .panel,:root[data-skin] .dealer,:root[data-skin] .tile,:root[data-skin] .ritem,:root[data-skin] .gitem,:root[data-skin] .team{background:color-mix(in srgb,var(--felt-2) 74%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
@@ -339,10 +344,10 @@ input[type=range]{width:100%;accent-color:var(--gold)}
     <div class="block">
       <span class="lbl">اللاعبين</span>
       <div class="table">
-        <div class="seat A" data-s="0"><small>تحت</small><input id="p0" placeholder="اسم" maxlength="14"></div>
-        <div class="seat B" data-s="1"><small>يمين</small><input id="p1" placeholder="اسم" maxlength="14"></div>
-        <div class="seat A" data-s="2"><small>فوق</small><input id="p2" placeholder="اسم" maxlength="14"></div>
-        <div class="seat B" data-s="3"><small>يسار</small><input id="p3" placeholder="اسم" maxlength="14"></div>
+        <div class="seat A" data-s="0"><small>تحت</small><input id="p0" placeholder="اسم" maxlength="24"></div>
+        <div class="seat B" data-s="1"><small>يمين</small><input id="p1" placeholder="اسم" maxlength="24"></div>
+        <div class="seat A" data-s="2"><small>فوق</small><input id="p2" placeholder="اسم" maxlength="24"></div>
+        <div class="seat B" data-s="3"><small>يسار</small><input id="p3" placeholder="اسم" maxlength="24"></div>
         <div class="felt">الطاولة</div>
       </div>
       <div class="teamnote"><span class="us">نحن: تحت + فوق</span><span class="them">هنن: يمين + يسار</span></div>
@@ -421,7 +426,7 @@ input[type=range]{width:100%;accent-color:var(--gold)}
       <label class="lbl" for="ab" id="abLbl">الأكلات</label>
       <div class="ab">
         <button class="pm" id="abPlus" aria-label="زيد">+</button>
-        <input id="ab" type="number" min="0" max="162" value="90" inputmode="numeric">
+        <input id="ab" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" enterkeyhint="done" value="90" aria-label="الأكلات">
         <button class="pm" id="abMinus" aria-label="نقص">−</button>
       </div>
       <input id="abRange" type="range" min="0" max="162" value="90" aria-label="الأكلات" dir="ltr">
@@ -462,6 +467,10 @@ input[type=range]{width:100%;accent-color:var(--gold)}
       </div>
     </div>
     <div class="colhead" id="colhead" hidden><span>#</span><span>المشتري</span><span>نحن</span><span>هنن</span><span></span></div>
+    <div class="rconfirm" id="roundConfirm" hidden>
+      <span id="roundConfirmText"></span>
+      <div><button class="ryes" id="roundDelYes">إي، امسح</button><button class="rno" id="roundDelNo">لا</button></div>
+    </div>
     <div class="rlist" id="rows"></div>
     <div class="empty" id="empty">ما في جولات لسا. عبّي الجولة الأولى فوق.</div>
   </section>
@@ -566,6 +575,12 @@ const KEY='baloot-ar', S0=JSON.stringify(S);let lastRaw=null;
 function loadS(){try{const raw=localStorage.getItem(KEY);if(!raw||raw===lastRaw)return false;const s=JSON.parse(raw);
   if(!s||!Array.isArray(s.rounds))return false;S=Object.assign(JSON.parse(S0),s);if(!Array.isArray(S.history))S.history=[];lastRaw=raw;return true;}catch(e){return false;}}
 loadS();
+if(!S.namesFixed){
+  // older versions saved each finished game with the names typed for the NEXT game: shift them back one game
+  const h=S.history;for(let k=h.length-1;k>=1;k--)h[k].players=(h[k-1].players||['','','','']).slice();
+  if(h.length)h[0].namesUnsure=true;
+  S.namesFixed=1;try{localStorage.setItem(KEY,JSON.stringify(S));lastRaw=localStorage.getItem(KEY);}catch(e){}
+}
 if(!S.start)S.start=Date.now();
 
 // ---- game summaries for stats ----
@@ -808,7 +823,7 @@ function renderStats(){
   $('glist').innerHTML=list.length?list.map(({g,key})=>{
     const t=totals(g.rounds);
     const tag=!t.done?(g.current?'<span class="gtag open">عم تنلعب</span>':'<span class="gtag open">ما خلصت</span>'):t.A>t.B?'<span class="gtag win">ربحنا</span>':'<span class="gtag loss">خسرنا</span>';
-    const names=g.players&&g.players.some(Boolean)?` · ${esc(g.players.map((p,i)=>p||SEATS[i]).join('، '))}`:'';
+    const names=g.players&&g.players.some(Boolean)?` · ${esc(g.players.map((p,i)=>pname(p)||SEATS[i]).join('، '))}`:'';
     const del=pendingDel===key?`<div class="gconfirm"><span>تحذف هاللعبة من الإحصائيات؟</span><button class="gyes" data-key="${key}">إي، احذف</button><button class="gno">لا</button></div>`:'';
     return `<div class="gitem${del?' asking':''}" data-key="${key}"><div class="gmain"><div class="gs"><span class="us">نحن ${fmt(t.A)}</span> – <span class="them">${fmt(t.B)} هنن</span></div><small>${fmtDate(g.start)} · ${fmtDur(gameDur(g))}${names}</small></div>${tag}<button class="gdel" data-key="${key}" aria-label="احذف اللعبة">🗑</button>${del}</div>`;
   }).join(''):'<div class="empty">ما في ألعاب لسا.</div>';
@@ -1165,8 +1180,8 @@ function drawFirst(){
 $('firstDealer').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;setupDealer=+b.dataset.i;drawFirst();});
 $('startGame').onclick=()=>{
   if(staleCheck())return;
-  S.players=[0,1,2,3].map(i=>$('p'+i).value.trim());
   if(curCounts()){const g=snapshot();delete g.current;S.history.push(g);S.history=S.history.slice(-100);}
+  S.players=[0,1,2,3].map(i=>$('p'+i).value.trim().replace(/\s+/g,' '));
   S.firstDealer=setupDealer;S.rounds=[];S.started=true;S.start=Date.now();S.end=null;view='game';persist();
   cur={buyer:'A',ab:90,kaboot:false,kabTeam:'A',proj:emptyProj()};resetAb();
   render();window.scrollTo({top:0});
@@ -1181,7 +1196,12 @@ $('skip').onclick=()=>{
   window.scrollTo({top:0,behavior:'smooth'});
 };
 
-$('rows').addEventListener('click',e=>{const b=e.target.closest('.x');if(!b)return;if(staleCheck())return;S.rounds.splice(+b.dataset.i,1);persist();render();});
+let pendingRound=null;
+$('rows').addEventListener('click',e=>{const b=e.target.closest('.x');if(!b)return;if(staleCheck())return;const i=+b.dataset.i;
+  if(totals(S.rounds).done){pendingRound=i;$('roundConfirmText').textContent=`اللعبة خلصت. تمسح الجولة ${i+1} وترجع تفتح اللعبة؟`;$('roundConfirm').hidden=false;$('roundConfirm').scrollIntoView({block:'nearest'});return;}
+  S.rounds.splice(i,1);persist();render();});
+$('roundDelNo').onclick=()=>{pendingRound=null;$('roundConfirm').hidden=true;};
+$('roundDelYes').onclick=()=>{if(staleCheck()||pendingRound==null){$('roundConfirm').hidden=true;return;}S.rounds.splice(pendingRound,1);pendingRound=null;$('roundConfirm').hidden=true;persist();render();};
 $('buyA').onclick=()=>{cur.buyer='A';setAb(entryVal);};
 $('buyB').onclick=()=>{cur.buyer='B';setAb(entryVal);};
 $('kabA').onclick=()=>{cur.kabTeam='A';preview();};
@@ -1191,7 +1211,12 @@ const setAb=v=>{v=Math.max(0,Math.min(TOTAL,Math.round(+v||0)));entryVal=v;cur.a
 const resetAb=()=>{cur.ab=90;entryVal=abFor==='buyer'?90:TOTAL-90;$('ab').value=entryVal;$('abRange').value=entryVal;};
 $('abForOpp').onclick=()=>{abFor='opp';S.abFor=abFor;persist();setAb(entryVal);};
 $('abForBuyer').onclick=()=>{abFor='buyer';S.abFor=abFor;persist();setAb(entryVal);};
-$('ab').addEventListener('input',e=>setAb(e.target.value));
+$('ab').addEventListener('input',e=>{const el=e.target,clean=el.value.replace(/[^0-9٠-٩]/g,'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));if(clean!==el.value)el.value=clean;setAb(clean);});
+// one tap selects the whole number, so typing replaces it
+const selectAb=()=>{const el=$('ab');try{el.setSelectionRange(0,el.value.length);}catch(err){el.select();}};
+$('ab').addEventListener('focus',()=>{selectAb();setTimeout(selectAb,0);});
+$('ab').addEventListener('pointerup',e=>{if(document.activeElement===$('ab')&&$('ab').selectionStart===$('ab').selectionEnd){e.preventDefault();selectAb();}});
+$('ab').addEventListener('keydown',e=>{if(e.key==='Enter')$('ab').blur();});
 $('ab').addEventListener('blur',()=>{$('ab').value=entryVal;});
 $('abRange').addEventListener('input',e=>setAb(e.target.value));
 $('abPlus').onclick=()=>setAb(entryVal+1);
