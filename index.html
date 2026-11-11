@@ -283,6 +283,29 @@ html,body,button,input,a,label,.seg,.pchip{touch-action:manipulation}
 .rconfirm div{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .rconfirm button{border:1.5px solid var(--bad);border-radius:10px;padding:8px;font-weight:800;background:transparent;color:var(--bad)}
 .rconfirm .ryes{background:var(--bad);color:#2a0b07}
+/* rename / merge players */
+.renbtn{align-self:flex-start;border:1.5px dashed var(--gold);background:transparent;color:var(--gold);border-radius:12px;padding:7px 12px;font-weight:800}
+.ren{display:flex;flex-direction:column;gap:8px;background:var(--card);border-radius:14px;padding:12px}
+.ren input{background:rgba(0,0,0,.2);border:2px solid var(--gold);border-radius:12px;padding:8px 10px;font-weight:800;font-size:1.1rem;color:var(--fg)}
+.renhint{font-size:.92rem;color:var(--muted)}
+.renhint.found{color:var(--fg);background:color-mix(in srgb,var(--gold) 14%,transparent);border-radius:10px;padding:8px 10px}
+.renhint b{color:var(--gold)}
+.rensug{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.88rem;color:var(--muted)}
+.rensug button{border:1px solid var(--line);background:rgba(0,0,0,.18);border-radius:999px;padding:3px 10px;font-weight:700;color:var(--fg)}
+.rensug small{color:var(--gold);font-weight:800}
+.renbtns{display:flex;gap:8px;flex-wrap:wrap}
+.renok{flex:1;border:0;border-radius:12px;padding:10px;font-weight:900;background:var(--gold);color:var(--gold-ink)}
+.renok.merge{background:var(--us);color:#062a1c}
+.rencancel{border:1px solid var(--line);background:transparent;border-radius:12px;padding:10px 14px;font-weight:800;color:var(--muted)}
+.dupbox{display:flex;flex-direction:column;gap:8px;background:color-mix(in srgb,var(--gold) 12%,var(--felt-2));border:1.5px solid var(--gold);border-radius:16px;padding:12px}
+.dupbox>b{color:var(--gold)}
+.duprow{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;font-weight:700}
+.duprow button{border-radius:10px;padding:6px 10px;font-weight:800;border:1px solid var(--line);background:transparent;color:var(--fg)}
+.duprow .dupyes{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+.aliasbox{display:flex;flex-direction:column;gap:6px}
+.arow{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--felt-2);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.arow button{border:1px solid var(--line);background:transparent;border-radius:10px;padding:4px 10px;font-weight:700;color:var(--muted)}
+@media (max-width:400px){.duprow{grid-template-columns:1fr 1fr}.duprow span{grid-column:1/3}}
 /* ===== per-theme layout ===== */
 :root[data-skin] body{background-image:none}
 :root[data-skin] .panel,:root[data-skin] .dealer,:root[data-skin] .tile,:root[data-skin] .ritem,:root[data-skin] .gitem,:root[data-skin] .team{background:color-mix(in srgb,var(--felt-2) 74%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
@@ -344,10 +367,10 @@ html,body,button,input,a,label,.seg,.pchip{touch-action:manipulation}
     <div class="block">
       <span class="lbl">اللاعبين</span>
       <div class="table">
-        <div class="seat A" data-s="0"><small>تحت</small><input id="p0" placeholder="اسم" maxlength="24"></div>
-        <div class="seat B" data-s="1"><small>يمين</small><input id="p1" placeholder="اسم" maxlength="24"></div>
-        <div class="seat A" data-s="2"><small>فوق</small><input id="p2" placeholder="اسم" maxlength="24"></div>
-        <div class="seat B" data-s="3"><small>يسار</small><input id="p3" placeholder="اسم" maxlength="24"></div>
+        <div class="seat A" data-s="0"><small>تحت</small><input id="p0" placeholder="اسم" maxlength="24" list="knownNames" autocomplete="off"></div>
+        <div class="seat B" data-s="1"><small>يمين</small><input id="p1" placeholder="اسم" maxlength="24" list="knownNames" autocomplete="off"></div>
+        <div class="seat A" data-s="2"><small>فوق</small><input id="p2" placeholder="اسم" maxlength="24" list="knownNames" autocomplete="off"></div>
+        <div class="seat B" data-s="3"><small>يسار</small><input id="p3" placeholder="اسم" maxlength="24" list="knownNames" autocomplete="off"></div>
         <div class="felt">الطاولة</div>
       </div>
       <div class="teamnote"><span class="us">نحن: تحت + فوق</span><span class="them">هنن: يمين + يسار</span></div>
@@ -476,6 +499,7 @@ html,body,button,input,a,label,.seg,.pchip{touch-action:manipulation}
   </section>
   </div>
 
+  <datalist id="knownNames"></datalist>
   <div id="settings" hidden style="display:flex;flex-direction:column;gap:16px">
     <div class="setup-head">
       <button class="pill closeSettings" aria-label="رجوع">→ رجوع</button>
@@ -499,8 +523,10 @@ html,body,button,input,a,label,.seg,.pchip{touch-action:manipulation}
       <button id="tabPlayers" aria-pressed="false">اللاعبين</button>
     </div>
     <div id="playerStats" hidden style="display:flex;flex-direction:column;gap:14px">
+      <div class="dupbox" id="dupBox" hidden></div>
       <div class="plist" id="plist"></div>
       <div class="pdetail" id="pdetail" hidden></div>
+      <div class="aliasbox" id="aliasBox" hidden></div>
       <p class="snote" id="pnote">كل لاعب بتنحسبلو نتيجة فريقو. الإحصائيات بتطلع بس للألعاب يلي انكتبت فيها الأسامي ببداية اللعبة.</p>
     </div>
     <div id="teamStats" style="display:flex;flex-direction:column;gap:16px">
@@ -615,7 +641,7 @@ function syncEnd(){
 let setupDealer=S.firstDealer;
 if(S.abFor==='buyer')abFor='buyer';
 entryVal=abFor==='buyer'?cur.ab:TOTAL-cur.ab;
-const pName=i=>(S.players[i]||'').trim()||SEATS[i];
+const pName=i=>resolveName(S.players[i])||SEATS[i];
 const dealerIdx=()=>(S.firstDealer+S.rounds.length)%4;
 const persist=()=>{try{const raw=JSON.stringify(S);localStorage.setItem(KEY,raw);lastRaw=raw;}catch(e){}};
 // returns true when another copy of the app changed the game: the screen is refreshed and the tapped action is skipped
@@ -720,12 +746,25 @@ function dayLabel(k){const now=new Date(),y=new Date(now);y.setDate(now.getDate(
   if(k===dayKey(now))return 'اليوم';if(k===dayKey(y))return 'مبارح';
   const [a,b,c]=k.split('-').map(Number);const d=new Date(a,b-1,c);
   try{return new Intl.DateTimeFormat('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'}).format(d);}catch(e){return k;}}
-const pname=n=>(n||'').trim();
+// ---- player names: one identity per person, with merges (aliases) the players chose ----
+const norm=n=>(n||'').toLowerCase().replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/ؤ/g,'و').replace(/ئ/g,'ي').replace(/\s+/g,' ').trim();
+function resolveName(raw){let n=(raw||'').trim().replace(/\s+/g,' ');const A=S.aliases||{};
+  for(let i=0;i<6;i++){const a=A[norm(n)];if(!a||a===n)break;const prev=n;n=a;if(norm(a)===norm(prev))break;}return n;}
+const pname=n=>resolveName(n);
+const pid=n=>norm(resolveName(n));
+function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let r=Array.from({length:n+1},(_,j)=>j);
+  for(let i=1;i<=m;i++){let prev=r[0];r[0]=i;for(let j=1;j<=n;j++){const t=r[j];r[j]=Math.min(r[j]+1,r[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=t;}}return r[n];}
+function similar(a,b){const x=norm(a).replace(/ /g,''),y=norm(b).replace(/ /g,'');if(!x||!y||x===y)return x===y;
+  const L=Math.min(x.length,y.length),d=lev(x,y);return (L>=3&&d<=1)||(L>=6&&d<=2)||(L>=3&&(x.includes(y)||y.includes(x)));}
+function mergeName(from,to){S.aliases=S.aliases||{};const k=norm(from);if(!k)return;S.aliases[k]=to.trim().replace(/\s+/g,' ');
+  // anything that pointed at the old name now points at the new one
+  Object.keys(S.aliases).forEach(x=>{if(norm(S.aliases[x])===k&&x!==k)S.aliases[x]=S.aliases[k];});persist();}
+const pairKey=(a,b)=>[norm(a),norm(b)].sort().join('|');
 function playerTable(entries){
   const P={};
   entries.forEach(({g})=>{if(!g.players)return;const t=totals(g.rounds);
-    g.players.forEach((raw,i)=>{const name=pname(raw);if(!name)return;const id=name.toLowerCase(),team=i%2===0?'A':'B',opp=team==='A'?'B':'A';
-      const p=P[id]||(P[id]={name,games:0,done:0,wins:0,losses:0,pts:0,ptsAgainst:0,bought:0,fails:0,kab:0,proj:0,dealt:0,dealtKnown:false,partners:{}});
+    g.players.forEach((raw,i)=>{const name=pname(raw);if(!name)return;const id=pid(raw),team=i%2===0?'A':'B',opp=team==='A'?'B':'A';
+      const p=P[id]||(P[id]={id,name,games:0,done:0,wins:0,losses:0,pts:0,ptsAgainst:0,bought:0,fails:0,kab:0,proj:0,dealt:0,dealtKnown:false,partners:{}});
       p.name=name;p.games++;p.pts+=t[team];p.ptsAgainst+=t[opp];p.kab+=t.kab[team];p.fails+=t.fail[team];
       g.rounds.forEach((r,ri)=>{if(r.skip)return;if(r.buyer===team)p.bought++;
         if(r.proj&&r.proj[team])PROJ.forEach(q=>{p.proj+=r.proj[team][q.k]||0;});});
@@ -733,21 +772,22 @@ function playerTable(entries){
       const won=t.done&&t[team]>t[opp];
       if(t.done){p.done++;won?p.wins++:p.losses++;}
       const mate=pname(g.players[(i+2)%4]);
-      if(mate){const m=p.partners[mate.toLowerCase()]||(p.partners[mate.toLowerCase()]={name:mate,done:0,wins:0});if(t.done){m.done++;if(won)m.wins++;}}
+      if(mate){const mk=norm(mate);const m=p.partners[mk]||(p.partners[mk]={name:mate,done:0,wins:0});if(t.done){m.done++;if(won)m.wins++;}}
     });});
   return Object.values(P).map(p=>Object.assign(p,{rate:p.done?p.wins/p.done:0})).sort((a,b)=>b.rate-a.rate||b.wins-a.wins||b.games-a.games||a.name.localeCompare(b.name));
 }
 function renderPlayers(entries){
   const list=playerTable(entries), pct=x=>Math.round(x*100)+'%';
-  if(statsPlayer&&!list.some(p=>p.name.toLowerCase()===statsPlayer))statsPlayer=null;
+  if(statsPlayer&&!list.some(p=>p.id===statsPlayer))statsPlayer=null;
+  renderDupes();renderAliases();
   const medal=i=>['🥇','🥈','🥉'][i]||`<span class="rk">${i+1}</span>`;
-  $('plist').innerHTML=list.length?list.map((p,i)=>`<button class="prow${statsPlayer===p.name.toLowerCase()?' on':''}" data-id="${esc(p.name.toLowerCase())}">
+  $('plist').innerHTML=list.length?list.map((p,i)=>`<button class="prow${statsPlayer===p.id?' on':''}" data-id="${esc(p.id)}">
       <span class="pm">${medal(i)}</span><span class="pn">${esc(p.name)}</span>
       <span class="pwl"><b class="us">${p.wins}</b>–<b class="them">${p.losses}</b></span>
       <span class="ppct">${p.done?pct(p.rate):'–'}</span>
       <i class="pbar"><i style="width:${p.done?Math.round(p.rate*100):0}%"></i></i></button>`).join('')
     :'<div class="empty">ما في لاعبين بهالفترة. اكتبوا الأسامي ببداية اللعبة.</div>';
-  const p=list.find(x=>x.name.toLowerCase()===statsPlayer);
+  const p=list.find(x=>x.id===statsPlayer);
   $('pdetail').hidden=!p;
   if(!p)return;
   const dash='–',tile=(l,v,cls='')=>`<div class="tile"><small>${l}</small><b class="${cls}">${v}</b></div>`;
@@ -755,6 +795,7 @@ function renderPlayers(entries){
   const partners=Object.values(p.partners).filter(m=>m.done).sort((a,b)=>b.wins/b.done-a.wins/a.done||b.wins-a.wins);
   const best=partners[0];
   $('pdetail').innerHTML=`<div class="phead"><b>${esc(p.name)}</b><span>${p.done?pct(p.rate)+' فوز':'ما خلص ولا لعبة'}</span></div>
+    ${renaming===p.id?renameEditor(p):`<button class="renbtn" data-ren="${esc(p.id)}">✏️ تعديل الاسم أو دمجو مع اسم تاني</button>`}
     <div class="wlbar" aria-hidden="true"><i class="w" style="flex:${p.wins||0}"></i><i class="l" style="flex:${p.losses||0}"></i>${p.done?'':'<i class="n" style="flex:1"></i>'}</div>
     <div class="tiles">${[
       tile('ألعاب لعبها',p.games),
@@ -776,6 +817,39 @@ function renderPlayers(entries){
     ].join('')}</div>
     ${partners.length>1?`<div class="partners"><span class="lbl">مع كل شريك</span>${partners.map(m=>`<div class="mrow"><span>${esc(m.name)}</span><b class="us">${m.wins}</b><span>من ${m.done}</span><b>${pct(m.wins/m.done)}</b></div>`).join('')}</div>`:''}`;
 }
+// all-time list of players (ignores the day filter) for merging
+const allPlayers=()=>playerTable(allGames().map(g=>({g})));
+let renaming=null, renameVal='';
+function renameTarget(val,selfId){const v=norm(val);if(!v)return null;return allPlayers().find(x=>x.id!==selfId&&x.id===v)||null;}
+function renameEditor(p){
+  const val=renameVal, target=renameTarget(val,p.id), same=norm(val)===p.id;
+  const near=allPlayers().filter(x=>x.id!==p.id&&similar(x.name,p.name)).slice(0,4);
+  let hint='',btn='';
+  if(!val.trim()){hint='اكتب الاسم الصح.';}
+  else if(target){hint=`<b>«${esc(target.name)}» موجود</b> (${target.games} لعبة). بالدمج رح تنجمع إحصائيات «${esc(p.name)}» مع «${esc(target.name)}»، ويضل اسم واحد بس.`;btn=`<button class="renok merge" data-act="merge">ادمج مع «${esc(target.name)}»</button>`;}
+  else if(same&&val.trim()===p.name){hint='نفس الاسم.';}
+  else{hint=`اسم جديد: «${esc(p.name)}» رح يصير «${esc(val.trim())}» بكل الألعاب.`;btn=`<button class="renok" data-act="rename">احفظ الاسم</button>`;}
+  return `<div class="ren">
+    <label class="lbl" for="renInput">الاسم الصح</label>
+    <input id="renInput" value="${esc(val)}" maxlength="24" autocomplete="off" list="knownNames">
+    <div class="renhint${target?' found':''}">${hint}</div>
+    ${near.length?`<div class="rensug"><span>يمكن نفس الشخص:</span>${near.map(x=>`<button data-pick="${esc(x.name)}">${esc(x.name)} <small>${x.games}</small></button>`).join('')}</div>`:''}
+    <div class="renbtns">${btn}<button class="rencancel" data-act="cancel">إلغاء</button></div>
+  </div>`;}
+function renderDupes(){
+  const L=allPlayers(), seen=S.notDup||{}, pairs=[];
+  for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],b=L[j];if(similar(a.name,b.name)&&!seen[pairKey(a.name,b.name)])pairs.push(a.games>=b.games?[a,b]:[b,a]);}
+  $('dupBox').hidden=!pairs.length;
+  $('dupBox').innerHTML=pairs.length?`<b>يمكن نفس الشخص؟</b>`+pairs.slice(0,5).map(([keep,drop])=>`<div class="duprow"><span>«${esc(drop.name)}» و «${esc(keep.name)}»</span>
+    <button class="dupyes" data-from="${esc(drop.name)}" data-to="${esc(keep.name)}">ادمج بـ «${esc(keep.name)}»</button><button class="dupno" data-a="${esc(drop.name)}" data-b="${esc(keep.name)}">لأ</button></div>`).join(''):'';
+}
+function renderAliases(){
+  const A=S.aliases||{}, ks=Object.keys(A);
+  $('aliasBox').hidden=!ks.length;
+  $('aliasBox').innerHTML=ks.length?`<span class="lbl">الأسامي المدموجة</span>`+ks.map(k=>`<div class="arow"><span>${esc(k)} ← <b>${esc(resolveName(A[k]))}</b></span><button data-unalias="${esc(k)}">فكّ الدمج</button></div>`).join(''):'';
+}
+function fillKnownNames(){
+  const L=allPlayers().sort((a,b)=>b.games-a.games);$('knownNames').innerHTML=L.map(p=>`<option value="${esc(p.name)}"></option>`).join('');}
 function renderDays(all){
   const counts={};all.forEach(x=>{const k=dayKey(x.g.start);counts[k]=(counts[k]||0)+1;});
   const keys=Object.keys(counts).sort().reverse();
@@ -1157,7 +1231,26 @@ $('closeStats').onclick=()=>{view='game';render();window.scrollTo({top:0});};
 $('dayFolders').addEventListener('click',e=>{const b=e.target.closest('.day');if(!b)return;statsDay=b.dataset.day;pendingDel=null;renderStats();});
 $('tabTeams').onclick=()=>{statsTab='teams';renderStats();};
 $('tabPlayers').onclick=()=>{statsTab='players';renderStats();};
-$('plist').addEventListener('click',e=>{const b=e.target.closest('.prow');if(!b)return;statsPlayer=statsPlayer===b.dataset.id?null:b.dataset.id;renderStats();
+$('pdetail').addEventListener('click',e=>{
+  const r=e.target.closest('[data-ren]');if(r){renaming=r.dataset.ren;renameVal=(allPlayers().find(x=>x.id===renaming)||{}).name||'';try{fillKnownNames();}catch(err){}renderStats();setTimeout(()=>{const i=$('renInput');if(i){i.focus();i.select();}},20);return;}
+  const pk=e.target.closest('[data-pick]');if(pk){renameVal=pk.dataset.pick;renderStats();return;}
+  const a=e.target.closest('[data-act]');if(!a)return;
+  if(a.dataset.act==='cancel'){renaming=null;renderStats();return;}
+  if(staleCheck())return;
+  const me=allPlayers().find(x=>x.id===renaming);if(!me){renaming=null;renderStats();return;}
+  const target=renameTarget(renameVal,me.id);const to=target?target.name:renameVal.trim();if(!to)return;
+  mergeName(me.name,to);renaming=null;statsPlayer=norm(resolveName(to));
+  toast(target?`انجمعت إحصائيات «${me.name}» مع «${to}»`:`صار الاسم «${to}»`);renderStats();render();});
+// typing only refreshes the hint and buttons, never the input itself (keeps the keyboard and Arabic input steady)
+$('pdetail').addEventListener('input',e=>{if(e.target.id!=='renInput')return;renameVal=e.target.value;
+  const me=allPlayers().find(x=>x.id===renaming);if(!me)return;const tmp=document.createElement('div');tmp.innerHTML=renameEditor(me);
+  const ren=document.querySelector('#pdetail .ren');if(!ren)return;
+  ['.renhint','.renbtns'].forEach(sel=>{const a=ren.querySelector(sel),b=tmp.querySelector(sel);if(a&&b){a.className=b.className;a.innerHTML=b.innerHTML;}});});
+$('dupBox').addEventListener('click',e=>{const y=e.target.closest('.dupyes'),n=e.target.closest('.dupno');
+  if(y){if(staleCheck())return;mergeName(y.dataset.from,y.dataset.to);toast(`انجمعت إحصائيات «${y.dataset.from}» مع «${y.dataset.to}»`);renderStats();render();}
+  if(n){S.notDup=S.notDup||{};S.notDup[pairKey(n.dataset.a,n.dataset.b)]=1;persist();renderStats();}});
+$('aliasBox').addEventListener('click',e=>{const b=e.target.closest('[data-unalias]');if(!b)return;if(staleCheck())return;delete S.aliases[b.dataset.unalias];persist();toast('انفكّ الدمج');renderStats();render();});
+$('plist').addEventListener('click',e=>{const b=e.target.closest('.prow');if(!b)return;renaming=null;statsPlayer=statsPlayer===b.dataset.id?null:b.dataset.id;renderStats();
   if(statsPlayer)setTimeout(()=>{try{$('pdetail').scrollIntoView({behavior:'smooth',block:'start'});}catch(err){}},30);});
 $('glist').addEventListener('click',e=>{
   const d=e.target.closest('.gdel'),y=e.target.closest('.gyes'),n=e.target.closest('.gno');
@@ -1170,6 +1263,7 @@ $('resetYes').onclick=()=>{if(staleCheck())return;S.history=[];S.statsReset=Date
 $('resetNo').onclick=()=>{$('clearStats').hidden=false;$('clearStats2').hidden=true;};
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function buildSetup(){
+  try{fillKnownNames();}catch(e){}
   [0,1,2,3].forEach(i=>{$('p'+i).value=S.players[i]||'';});
   drawFirst();
   $('cancelSetup').hidden=!S.started&&!S.rounds.length;
