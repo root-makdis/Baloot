@@ -754,9 +754,20 @@ const pname=n=>resolveName(n);
 const pid=n=>norm(resolveName(n));
 function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let r=Array.from({length:n+1},(_,j)=>j);
   for(let i=1;i<=m;i++){let prev=r[0];r[0]=i;for(let j=1;j<=n;j++){const t=r[j];r[j]=Math.min(r[j]+1,r[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=t;}}return r[n];}
-function similar(a,b){const x=norm(a).replace(/ /g,''),y=norm(b).replace(/ /g,'');if(!x||!y||x===y)return x===y;
-  const L=Math.min(x.length,y.length),d=lev(x,y);return (L>=3&&d<=1)||(L>=6&&d<=2)||(L>=3&&(x.includes(y)||y.includes(x)));}
-function mergeName(from,to){S.aliases=S.aliases||{};const k=norm(from);if(!k)return;S.aliases[k]=to.trim().replace(/\s+/g,' ');
+// common names that look alike but are different people
+const DISTINCT=[['محمد','احمد','محمود','حامد','حمد','حمدي','حمود','امجد','مجد'],['حسن','حسين','حسان','محسن','احسان'],['علي','عليا','عالي'],['سامي','سامر','سمير','اسامه'],['عمر','عمار','عامر','معمر'],['خالد','خليل'],['يوسف','يونس'],['رامي','رامز','رامح'],['جو','جود','جاد']].map(g=>g.map(norm));
+function knownDistinct(x,y){return DISTINCT.some(g=>g.includes(x)&&g.includes(y));}
+function similar(a,b){const x=norm(a).replace(/ /g,''),y=norm(b).replace(/ /g,'');if(!x||!y)return false;if(x===y)return true;
+  if(knownDistinct(norm(a),norm(b)))return false;
+  const L=Math.min(x.length,y.length),d=lev(x,y);
+  if(L>=4&&d<=1&&x[0]===y[0])return true;            // one-letter typo, same first letter
+  if(L>=7&&d<=2&&x[0]===y[0])return true;
+  const ta=norm(a).split(' '),tb=norm(b).split(' ');      // one name is the first name of the other ("سيمون" / "سيمون مقدسي")
+  return (ta.length!==tb.length)&&ta[0]===tb[0]&&ta[0].length>=3&&!knownDistinct(ta[0],tb[0])&&(ta.length===1||tb.length===1);}
+// players who sat at the same table in one game can never be the same person
+function playedTogether(){const T=new Set();allGames().forEach(g=>{const ids=(g.players||[]).map(n=>pid(n)).filter(Boolean);
+  ids.forEach(a=>ids.forEach(b=>{if(a!==b)T.add(a+'|'+b);}));});return T;}
+function mergeName(from,to){S.aliases=S.aliases||{};S.aliasLabel=S.aliasLabel||{};const k=norm(from);if(!k)return;S.aliases[k]=to.trim().replace(/\s+/g,' ');S.aliasLabel[k]=from.trim();
   // anything that pointed at the old name now points at the new one
   Object.keys(S.aliases).forEach(x=>{if(norm(S.aliases[x])===k&&x!==k)S.aliases[x]=S.aliases[k];});persist();}
 const pairKey=(a,b)=>[norm(a),norm(b)].sort().join('|');
@@ -782,7 +793,7 @@ function renderPlayers(entries){
   renderDupes();renderAliases();
   const medal=i=>['🥇','🥈','🥉'][i]||`<span class="rk">${i+1}</span>`;
   $('plist').innerHTML=list.length?list.map((p,i)=>`<button class="prow${statsPlayer===p.id?' on':''}" data-id="${esc(p.id)}">
-      <span class="pm">${medal(i)}</span><span class="pn">${esc(p.name)}</span>
+      <span class="pm">${medal(i)}</span><span class="pn" dir="auto">${esc(p.name)}</span>
       <span class="pwl"><b class="us">${p.wins}</b>–<b class="them">${p.losses}</b></span>
       <span class="ppct">${p.done?pct(p.rate):'–'}</span>
       <i class="pbar"><i style="width:${p.done?Math.round(p.rate*100):0}%"></i></i></button>`).join('')
@@ -820,14 +831,16 @@ function renderPlayers(entries){
 // all-time list of players (ignores the day filter) for merging
 const allPlayers=()=>playerTable(allGames().map(g=>({g})));
 let renaming=null, renameVal='';
-function renameTarget(val,selfId){const v=norm(val);if(!v)return null;return allPlayers().find(x=>x.id!==selfId&&x.id===v)||null;}
+function renameTarget(val,selfId){const v=pid(val);if(!v)return null;return allPlayers().find(x=>x.id!==selfId&&x.id===v)||null;}
 function renameEditor(p){
-  const val=renameVal, target=renameTarget(val,p.id), same=norm(val)===p.id;
-  const near=allPlayers().filter(x=>x.id!==p.id&&similar(x.name,p.name)).slice(0,4);
+  const val=renameVal, target=renameTarget(val,p.id), same=pid(val)===p.id, T=playedTogether();
+  const near=allPlayers().filter(x=>x.id!==p.id&&similar(x.name,p.name)&&!T.has(p.id+'|'+x.id)).slice(0,4);
   let hint='',btn='';
   if(!val.trim()){hint='اكتب الاسم الصح.';}
+  else if(target&&T.has(p.id+'|'+target.id)){hint=`<b>«${esc(target.name)}» موجود</b>، بس لعب مع «${esc(p.name)}» بنفس اللعبة، فما بيصير يكونو نفس الشخص. اختار اسم تاني.`;}
   else if(target){hint=`<b>«${esc(target.name)}» موجود</b> (${target.games} لعبة). بالدمج رح تنجمع إحصائيات «${esc(p.name)}» مع «${esc(target.name)}»، ويضل اسم واحد بس.`;btn=`<button class="renok merge" data-act="merge">ادمج مع «${esc(target.name)}»</button>`;}
   else if(same&&val.trim()===p.name){hint='نفس الاسم.';}
+  else if(same){hint=`نفس الشخص، بس الكتابة رح تصير «${esc(val.trim())}».`;btn=`<button class="renok" data-act="rename">احفظ الكتابة</button>`;}
   else{hint=`اسم جديد: «${esc(p.name)}» رح يصير «${esc(val.trim())}» بكل الألعاب.`;btn=`<button class="renok" data-act="rename">احفظ الاسم</button>`;}
   return `<div class="ren">
     <label class="lbl" for="renInput">الاسم الصح</label>
@@ -837,8 +850,8 @@ function renameEditor(p){
     <div class="renbtns">${btn}<button class="rencancel" data-act="cancel">إلغاء</button></div>
   </div>`;}
 function renderDupes(){
-  const L=allPlayers(), seen=S.notDup||{}, pairs=[];
-  for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],b=L[j];if(similar(a.name,b.name)&&!seen[pairKey(a.name,b.name)])pairs.push(a.games>=b.games?[a,b]:[b,a]);}
+  const L=allPlayers(), seen=S.notDup||{}, pairs=[], T=playedTogether();
+  for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],b=L[j];if(similar(a.name,b.name)&&!T.has(a.id+'|'+b.id)&&!seen[pairKey(a.name,b.name)])pairs.push(a.games>=b.games?[a,b]:[b,a]);}
   $('dupBox').hidden=!pairs.length;
   $('dupBox').innerHTML=pairs.length?`<b>يمكن نفس الشخص؟</b>`+pairs.slice(0,5).map(([keep,drop])=>`<div class="duprow"><span>«${esc(drop.name)}» و «${esc(keep.name)}»</span>
     <button class="dupyes" data-from="${esc(drop.name)}" data-to="${esc(keep.name)}">ادمج بـ «${esc(keep.name)}»</button><button class="dupno" data-a="${esc(drop.name)}" data-b="${esc(keep.name)}">لأ</button></div>`).join(''):'';
@@ -846,10 +859,10 @@ function renderDupes(){
 function renderAliases(){
   const A=S.aliases||{}, ks=Object.keys(A);
   $('aliasBox').hidden=!ks.length;
-  $('aliasBox').innerHTML=ks.length?`<span class="lbl">الأسامي المدموجة</span>`+ks.map(k=>`<div class="arow"><span>${esc(k)} ← <b>${esc(resolveName(A[k]))}</b></span><button data-unalias="${esc(k)}">فكّ الدمج</button></div>`).join(''):'';
+  $('aliasBox').innerHTML=ks.length?`<span class="lbl">الأسامي المدموجة</span>`+ks.map(k=>`<div class="arow"><span><bdi>${esc((S.aliasLabel||{})[k]||k)}</bdi> ← <b>${esc(resolveName(A[k]))}</b></span><button data-unalias="${esc(k)}">فكّ الدمج</button></div>`).join(''):'';
 }
 function fillKnownNames(){
-  const L=allPlayers().sort((a,b)=>b.games-a.games);$('knownNames').innerHTML=L.map(p=>`<option value="${esc(p.name)}"></option>`).join('');}
+  const L=allPlayers().filter((p,i,a)=>a.findIndex(q=>q.id===p.id)===i).sort((a,b)=>b.games-a.games);$('knownNames').innerHTML=L.map(p=>`<option value="${esc(p.name)}"></option>`).join('');}
 function renderDays(all){
   const counts={};all.forEach(x=>{const k=dayKey(x.g.start);counts[k]=(counts[k]||0)+1;});
   const keys=Object.keys(counts).sort().reverse();
@@ -858,6 +871,7 @@ function renderDays(all){
   $('dayFolders').innerHTML=chip('all','كل الأيام',all.length)+keys.map(k=>chip(k,dayLabel(k),counts[k])).join('');
 }
 function renderStats(){
+  try{fillKnownNames();}catch(e){}
   const all=allGames().map((g,i)=>({g,key:g.current?'cur':'h'+i}));
   renderDays(all);
   const entries=all.filter(x=>statsDay==='all'||dayKey(x.g.start)===statsDay);
